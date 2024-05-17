@@ -30,8 +30,18 @@ export class CdkSimpleApiStack extends cdk.Stack {
         PRIMARY_KEY: "itemId",
       },
     });
-
     dynamoTable.grantReadData(getItemLambda);
+
+    const postItemLambda = new Function(this, "postItemFunction", {
+      code: new AssetCode("lib/lambda"),
+      handler: "post-item.handler",
+      runtime: Runtime.NODEJS_16_X,
+      environment: {
+        TABLE_NAME: dynamoTable.tableName,
+        PRIMARY_KEY: "itemId",
+      },
+    });
+    dynamoTable.grantWriteData(postItemLambda);
 
     const api = new RestApi(this, "itemsApi", {
       restApiName: "Items Service",
@@ -42,6 +52,8 @@ export class CdkSimpleApiStack extends cdk.Stack {
     const getItemIntegration = new LambdaIntegration(getItemLambda);
     singleItem.addMethod("GET", getItemIntegration);
     addCorsOptions(singleItem);
+    const postItemIntegration = new LambdaIntegration(postItemLambda);
+    items.addMethod("POST", postItemIntegration);
   }
 }
 
